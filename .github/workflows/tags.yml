@@ -1,0 +1,54 @@
+name: tags-test
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+
+  check-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      run_other_jobs: ${{ steps.check-tag.outputs.run_jobs }}
+    steps:
+      - name: check tag ${{ github.ref }}
+        run: |
+          echo "checking for release tag:"
+          if [[ ${{ github.ref }} =~ ^refs\/tags\/v[0-9]+\.[0-9]+\.[0-9]+Test$ ]]; then
+            echo "found release tag ${{ github.ref }}"
+            echo "::set-output name=run_jobs::true"
+            exit 0
+          else
+            echo "did not find release tag. Ref was ${{ github.ref }}. Exiting"
+            echo "::set-output name=run_jobs::false"
+            exit 1
+          fi
+
+  test-tag:
+    needs: [check-tag]
+    runs-on: ubuntu-latest
+    if: needs.check-tag.outputs.run_other_jobs == 'true'
+    outputs:
+      run_6: ${{ steps.release-test.outputs.run_jobs_36 }}
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version: [2.7, 3.8, 3.9]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install PySCIPOpt
+        run: python test.py
+
+  deploy-tag:
+    needs: [test-tag]
+    runs-on: ubuntu-latest
+    if: needs.release-test.outputs.run_6 == 'true'
+    steps:
+      name: Deploy
+      run: |
+        echo "deploying tag"
