@@ -41,6 +41,5 @@ jobs:
     needs: test-tag
     runs-on: ubuntu-latest
     steps:
-      name: Deploy
-      run: |
-        echo "deploying tag"
+      - name: Deploy
+        run: echo "deploying tag"
