@@ -9,28 +9,21 @@ jobs:
 
   check-tag:
     runs-on: ubuntu-latest
-    outputs:
-      run_other_jobs: ${{ steps.check-tag.outputs.run_jobs }}
     steps:
       - name: check tag ${{ github.ref }}
         run: |
           echo "checking for release tag:"
-          if [[ ${{ github.ref }} =~ ^refs\/tags\/v[0-9]+\.[0-9]+\.[0-9]+Test$ ]]; then
+          if [[ ${{ github.ref }} =~ ^refs\/tags\/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "found release tag ${{ github.ref }}"
-            echo "::set-output name=run_jobs::true"
             exit 0
           else
             echo "did not find release tag. Ref was ${{ github.ref }}. Exiting"
-            echo "::set-output name=run_jobs::false"
             exit 1
           fi
 
   test-tag:
-    needs: [check-tag]
+    needs: check-tag
     runs-on: ubuntu-latest
-    if: needs.check-tag.outputs.run_other_jobs == 'true'
-    outputs:
-      run_6: ${{ steps.release-test.outputs.run_jobs_36 }}
     strategy:
       fail-fast: true
       matrix:
@@ -45,9 +38,8 @@ jobs:
         run: python test.py
 
   deploy-tag:
-    needs: [test-tag]
+    needs: test-tag
     runs-on: ubuntu-latest
-    if: needs.release-test.outputs.run_6 == 'true'
     steps:
       name: Deploy
       run: |
